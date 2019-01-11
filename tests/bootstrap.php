@@ -9,7 +9,7 @@ define('YII_ENV', 'test');
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
-Yii::setAlias('@yiiunit', __DIR__);
+Yii::setAlias('@tests', __DIR__);
 Yii::setAlias('@runtime', __DIR__ . '/runtime');
 Yii::setAlias('@webroot/assets', __DIR__ . '/runtime/assets');
 Yii::setAlias('@web/assets', __DIR__ . '/runtime/assets');
@@ -24,7 +24,7 @@ new \yii\web\Application([
     ],
     'components' => [
         'cache' => [
-            'class' => \yii\caching\FileCache::class,
+            'class' => '\yii\caching\FileCache',
         ],
         'request' => [
             'cookieValidationKey' => 'wefJDF8sfdsfSDefwqdxj9oq',
