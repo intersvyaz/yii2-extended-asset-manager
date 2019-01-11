@@ -38,7 +38,7 @@ class FileSystemHash implements FileSystemHashInterface
             $hashes[] = md5_file($path) . '-' . $this->hashPathName((string)$path);
         }
 
-        return md5(implode($hashes, '|'));
+        return md5(implode('|', $hashes));
     }
 
     /**

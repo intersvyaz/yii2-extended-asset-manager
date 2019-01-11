@@ -72,7 +72,7 @@ class Component extends \yii\web\AssetManager
         /** @var Cache $cacheComponent */
         $cacheComponent = Yii::$app->{$this->cacheComponent};
 
-        $hash = $cacheComponent->getOrSet($key, function () use ($path) {
+        $hash = (string)$cacheComponent->getOrSet($key, function () use ($path) {
             return $this->fileSystemHash->hashPath($path);
         });
 
