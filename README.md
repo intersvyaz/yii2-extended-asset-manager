@@ -1,4 +1,4 @@
-#intersvyaz/yii2-extended-asset-manager
+# intersvyaz/yii2-extended-asset-manager
 
 [![Build Status](https://travis-ci.org/intersvyaz/yii2-extended-asset-manager.svg)](https://travis-ci.org/intersvyaz/yii2-extended-asset-manager)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/intersvyaz/yii2-extended-asset-manager/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/intersvyaz/yii2-extended-asset-manager/?branch=master)
