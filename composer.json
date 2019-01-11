@@ -17,9 +17,9 @@
         "phpunit/phpunit": "~4.4"
     },
     "autoload": {
-      "psr-4": {
-        "Intersvyaz\\AssetManager\\": ""
-      }
+        "psr-4": {
+          "Intersvyaz\\AssetManager\\": "src"
+        }
     },
     "repositories": [
         {

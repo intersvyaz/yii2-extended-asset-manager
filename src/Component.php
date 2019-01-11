@@ -1,11 +1,10 @@
 <?php
 namespace Intersvyaz\AssetManager;
 
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 use Yii;
 use yii\caching\Cache;
+use yii\caching\CacheInterface;
+use yii\di\Instance;
 
 /**
  * Расширенный AssetManager, позволяющий рассчитывать хэш публикации ассетов по содержимому директории.
@@ -20,15 +19,33 @@ class Component extends \yii\web\AssetManager
     public $hashByContent = false;
 
     /**
+     * Класс, реализующий возможность вычисления хэша по ФС.
+     * @var FileSystemHashInterface
+     */
+    public $fileSystemHash = '\Intersvyaz\AssetManager\FileSystemHash';
+
+    /**
      * Имя компонента, используемого для кеширования.
-     * @var string
+     * @var CacheInterface|array|string
      */
     public $cacheComponent = 'cache';
 
     /**
      * @inheritdoc
      */
-    public function hash($path)
+    public function init()
+    {
+        parent::init();
+        $this->fileSystemHash = Instance::ensure(
+            $this->fileSystemHash,
+            'Intersvyaz\AssetManager\FileSystemHashInterface'
+        );
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function hash($path)
     {
         if (!$this->hashByContent) {
             return parent::hash($path);
@@ -47,27 +64,23 @@ class Component extends \yii\web\AssetManager
      * @param string $path
      * @return string
      */
-    private function hashByContent($path)
+    protected function hashByContent($path)
     {
         $filemtime = @filemtime($path);
         $key = md5(__CLASS__ . $path . $filemtime);
 
         /** @var Cache $cacheComponent */
         $cacheComponent = Yii::$app->{$this->cacheComponent};
-        $hash = $cacheComponent->getOrSet($key, function () use ($path, $filemtime) {
-            $files = [];
-            $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
 
-            /** @var SplFileInfo $file */
-            foreach ($it as $file) {
-                if ($file->isFile()) {
-                    $files[] = md5_file($file);
-                }
-            }
+        $hash = $cacheComponent->getOrSet($key, function () use ($path) {
+            return $this->fileSystemHash->hashPath($path);
+        });
 
-            return md5($path . implode($files, '|'));
-        }, 1);
-
-        return sprintf('%x', crc32($hash . Yii::getVersion() . '|' . $this->linkAssets));
+        return sprintf('%x', crc32(
+                $this->fileSystemHash->hashPathName($path) . '|' .
+                $hash . Yii::getVersion() . '|' .
+                $this->linkAssets
+            )
+        );
     }
 }

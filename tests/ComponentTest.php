@@ -3,100 +3,94 @@ namespace tests;
 
 use Intersvyaz\AssetManager;
 
-class ComponentTest extends \PHPUnit\Framework\TestCase
+class ComponentTest extends TestCase
 {
     /**
-     * Нативное кеширование по дате изменения директории работает.
+     * Проверка на работоспособность нативного кеширования по дате изменения.
+     * @covers \Intersvyaz\AssetManager\Component::hash()
      */
     public function testNativeMTime()
     {
         $assetDir = __DIR__ . '/runtime/assets';
         $manager = new AssetManager\Component();
 
-        $hash1 = $manager->hash($assetDir);
+        $hash1 = $this->invokeMethod($manager, 'hash', [$assetDir]);
         $this->touch($assetDir);
-        $hash2 = $manager->hash($assetDir);
+        $hash2 = $this->invokeMethod($manager, 'hash', [$assetDir]);
 
         $this->assertNotEquals($hash1, $hash2);
     }
 
     /**
-     * Нативная возможность задания hashCallback работает не смотря на hashByContent=true.
+     * Проверка работоспособности нативной возможности задания hashCallback, не смотря на hashByContent=true.
+     * @covers \Intersvyaz\AssetManager\Component::hash()
      */
     public function testNativeCallback()
     {
         $assetDir = __DIR__ . '/runtime/assets';
-        $manager = new AssetManager\Component();
-        $manager->hashByContent = true;
-        $manager->hashCallback = function () {
-            return 'test';
-        };
+        $manager = new AssetManager\Component([
+            'hashByContent' => true,
+            'fileSystemHash' => 'tests\FakeFileSystemHash',
+            'hashCallback' => function () {
+                return 'test';
+            },
+        ]);
 
-        $this->assertEquals('test', $manager->hash($assetDir));
+        $this->assertEquals('test', $this->invokeMethod($manager, 'hash', [$assetDir]));
     }
 
     /**
-     * Тестирование кеширования по контенту.
-     * Если происходит touch директории, но содержимое директории не меняется, то хэш не должен поменяться.
+     * @covers \Intersvyaz\AssetManager\Component::hash()
      */
-    public function testContentTouch()
+    public function testHashByContent()
     {
-        $assetDir = __DIR__ . '/runtime/assets';
-        $manager = new AssetManager\Component();
-        $manager->hashByContent = true;
+        $assetDir = __DIR__ . '/runtime/assets/' . uniqid();
+        $this->mkDir($assetDir);
 
-        $hash1 = $manager->hash($assetDir);
+
+        $manager = new AssetManager\Component([
+            'hashByContent' => true,
+            'fileSystemHash' => 'tests\FakeFileSystemHash',
+        ]);
+
+        $hash = $this->invokeMethod($manager, 'hash', [$assetDir]);
+        $this->assertEquals('6230f8d5', $hash, 'Test 1 failed');
+        $this->assertEquals($hash, $this->invokeMethod($manager, 'hash', [$assetDir . '/.gitignore']), 'Test 2 failed');
+
         $this->touch($assetDir);
-        $hash2 = $manager->hash($assetDir);
+        $this->assertEquals($hash, $this->invokeMethod($manager, 'hash', [$assetDir]), 'Test 3 failed');
 
-        $this->assertEquals($hash1, $hash2);
+        $this->rmDir($assetDir);
     }
 
     /**
-     * Тестирование кеширования по контенту.
-     * Проверяем, что работает кеширование расчета хэша.
-     * Если не тачить директорию, что хэш не будет пересчитываться.
+     * @covers \Intersvyaz\AssetManager\Component::hashByContent()
      */
-    public function testContentNoTouch()
+    public function testHashByContentCaching()
     {
-        $assetDir = __DIR__ . '/runtime/assets';
-        $manager = new AssetManager\Component();
-        $manager->hashByContent = true;
+        $assetDir = __DIR__ . '/runtime/assets/' . uniqid();
+        $this->mkDir($assetDir);
 
-        $hash1 = $manager->hash($assetDir);
-        file_put_contents($assetDir . '/1.txt', rand(1, 999999999999));
-        $hash2 = $manager->hash($assetDir);
+        $fakeHash = new FakeFileSystemHash();
 
-        $this->assertEquals($hash1, $hash2);
-    }
+        $manager = new AssetManager\Component([
+            'hashByContent' => true,
+            'fileSystemHash' => $fakeHash,
+        ]);
 
-    public function testContentChangeHash()
-    {
-        $assetDir = __DIR__ . '/runtime/assets';
-        $manager = new AssetManager\Component();
-        $manager->hashByContent = true;
+        $this->assertEquals('6230f8d5', $this->invokeMethod($manager, 'hashByContent', [$assetDir]), 'Test 1 failed');
 
-        $hash1 = $manager->hash($assetDir);
-        $rand1 = rand(1, 999999999999);
-        $rand2 = rand(1, 999999999999);
+        // Если добавить файл, но не тачнуть директорию, то хэш останется такой же
+        file_put_contents($assetDir . '/test.txt', 'testfile');
+        $fakeHash->hashPath = 'test';
+        $this->assertEquals('6230f8d5', $this->invokeMethod($manager, 'hashByContent', [$assetDir]), 'Test 2 failed');
 
-        // Если изменяем файл, то хэш должен поменяться.
-        file_put_contents($assetDir . '/1.txt', $rand1);
+
+        // Если тачнуть, то ключ кеширования должен устареть и будет повторный пересчет md5 сумм всех файлов.
         $this->touch($assetDir);
-        $hash2 = $manager->hash($assetDir);
-        $this->assertNotEquals($hash1, $hash2, 'testContentChangeHash fail 1');
+        $this->assertEquals('90815524', $this->invokeMethod($manager, 'hashByContent', [$assetDir]), 'Test 3 failed');
 
-        // Если ещё раз изменяем файл, то кэш опять должен поменяться.
-        file_put_contents($assetDir . '/1.txt', $rand2);
-        $this->touch($assetDir);
-        $hash3 = $manager->hash($assetDir);
-        $this->assertNotEquals($hash2, $hash3, 'testContentChangeHash fail 2');
-
-        // Если восстанавливаем содержимое файла до состояния $rand1, то хэш должен стать тот же, который был до этого.
-        file_put_contents($assetDir . '/1.txt', $rand1);
-        $this->touch($assetDir);
-        $hash3 = $manager->hash($assetDir);
-        $this->assertEquals($hash2, $hash3, 'testContentChangeHash fail 3');
+        $this->rmDir($assetDir);
     }
 
     /**
