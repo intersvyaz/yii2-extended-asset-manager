@@ -8,5 +8,14 @@ php:
   - 7.2
   - 7.3
 
+cache:
+  directories:
+    - $HOME/.composer/cache
+
+install:
+  - travis_retry composer self-update && composer --version
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - travis_retry composer install --prefer-dist --no-interaction
+
 script:
   - ./vendor/bin/phpunit
