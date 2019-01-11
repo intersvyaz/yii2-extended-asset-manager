@@ -9,8 +9,6 @@
             "email": "i@kikimor.ru"
         }
     ],
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "require": {
         "yiisoft/yii2": "*"
     },
