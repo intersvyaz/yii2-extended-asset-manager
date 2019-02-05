@@ -7,7 +7,7 @@ define('YII_ENV', 'test');
 
 // require composer autoloader if available
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
+require_once __DIR__ . '/Yii.php';
 
 Yii::setAlias('@tests', __DIR__);
 Yii::setAlias('@runtime', __DIR__ . '/runtime');
